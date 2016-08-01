@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'yaml'
 require 'nokogiri'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     describe Multipart do
@@ -683,4 +683,4 @@ module Aliyun
     end # Multipart
 
   end # OSS
-end # Aliyun
+end # AliyunOss

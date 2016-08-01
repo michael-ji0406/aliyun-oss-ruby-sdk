@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-module Aliyun
+module AliyunOss
   module OSS
     ##
     # Iterator structs that wrap the multiple communications with the
@@ -89,4 +89,4 @@ module Aliyun
 
     end # Iterator
   end # OSS
-end # Aliyun
+end # AliyunOss

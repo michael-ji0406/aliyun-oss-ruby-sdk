@@ -8,8 +8,8 @@ require_relative 'config'
 
 class TestObjectUrl < Minitest::Test
   def setup
-    Aliyun::Common::Logging.set_log_level(Logger::DEBUG)
-    client = Aliyun::OSS::Client.new(TestConf.creds)
+    AliyunOss::Common::Logging.set_log_level(Logger::DEBUG)
+    client = AliyunOss::OSS::Client.new(TestConf.creds)
     @bucket = client.get_bucket(TestConf.bucket)
 
     @prefix = "tests/object_url/"
@@ -22,7 +22,7 @@ class TestObjectUrl < Minitest::Test
   def test_signed_url_for_get
     key = get_key('object-for-get')
 
-    @bucket.put_object(key, acl: Aliyun::OSS::ACL::PRIVATE)
+    @bucket.put_object(key, acl: AliyunOss::OSS::ACL::PRIVATE)
 
     plain_url = @bucket.object_url(key, false)
     begin
@@ -41,17 +41,17 @@ class TestObjectUrl < Minitest::Test
   def test_signed_url_with_sts
     key = get_key('object-with-sts')
 
-    sts_client = Aliyun::STS::Client.new(TestConf.sts_creds)
+    sts_client = AliyunOss::STS::Client.new(TestConf.sts_creds)
     token = sts_client.assume_role(TestConf.sts_role, 'app')
 
-    bucket = Aliyun::OSS::Client.new(
+    bucket = AliyunOss::OSS::Client.new(
       :endpoint => TestConf.creds[:endpoint],
       :sts_token => token.security_token,
       :access_key_id => token.access_key_id,
       :access_key_secret => token.access_key_secret)
              .get_bucket(TestConf.sts_bucket)
 
-    bucket.put_object(key, acl: Aliyun::OSS::ACL::PRIVATE)
+    bucket.put_object(key, acl: AliyunOss::OSS::ACL::PRIVATE)
 
     plain_url = bucket.object_url(key, false)
     begin

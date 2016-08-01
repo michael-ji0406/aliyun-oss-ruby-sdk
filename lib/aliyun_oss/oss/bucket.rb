@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-module Aliyun
+module AliyunOss
   module OSS
     ##
     # Bucket是用户的Object相关的操作的client，主要包括三部分功能：
@@ -658,4 +658,4 @@ module Aliyun
 
     end # Bucket
   end # OSS
-end # Aliyun
+end # AliyunOss

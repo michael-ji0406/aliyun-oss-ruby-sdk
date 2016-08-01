@@ -4,7 +4,7 @@ require 'rest-client'
 require 'resolv'
 require 'fiber'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     ##
@@ -322,7 +322,7 @@ module Aliyun
 
     end # HTTP
   end # OSS
-end # Aliyun
+end # AliyunOss
 
 # Monkey patch rest-client to exclude the 'Content-Length' header when
 # 'Transfer-Encoding' is set to 'chuncked'. This may be a problem for

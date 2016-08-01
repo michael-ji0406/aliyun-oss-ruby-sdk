@@ -2,7 +2,7 @@
 
 require 'logger'
 
-module Aliyun
+module AliyunOss
   module Common
     ##
     # Logging support
@@ -43,4 +43,4 @@ module Aliyun
 
     end # logging
   end # Common
-end # Aliyun
+end # AliyunOss

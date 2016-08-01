@@ -3,7 +3,7 @@
 require 'json'
 require 'digest/md5'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     ##
@@ -71,4 +71,4 @@ module Aliyun
 
     end # Multipart
   end # OSS
-end # Aliyun
+end # AliyunOss

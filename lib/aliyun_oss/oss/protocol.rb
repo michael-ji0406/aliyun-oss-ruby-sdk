@@ -4,7 +4,7 @@ require 'rest-client'
 require 'nokogiri'
 require 'time'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     ##
@@ -1496,4 +1496,4 @@ module Aliyun
 
     end # Protocol
   end # OSS
-end # Aliyun
+end # AliyunOss

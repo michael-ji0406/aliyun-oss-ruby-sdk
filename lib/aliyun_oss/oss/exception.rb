@@ -2,7 +2,7 @@
 
 require 'nokogiri'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     ##
@@ -105,4 +105,4 @@ module Aliyun
     class CheckpointBrokenError < ClientError; end
 
   end # OSS
-end # Aliyun
+end # AliyunOss

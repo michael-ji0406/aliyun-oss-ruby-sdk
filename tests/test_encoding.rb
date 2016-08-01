@@ -7,8 +7,8 @@ require_relative 'config'
 
 class TestEncoding < Minitest::Test
   def setup
-    Aliyun::Common::Logging.set_log_level(Logger::DEBUG)
-    client = Aliyun::OSS::Client.new(TestConf.creds)
+    AliyunOss::Common::Logging.set_log_level(Logger::DEBUG)
+    client = AliyunOss::OSS::Client.new(TestConf.creds)
     @bucket = client.get_bucket(TestConf.bucket)
 
     @prefix = 'tests/encoding/'

@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-module Aliyun
+module AliyunOss
   module STS
 
     # A place to store various configurations: credentials, api
@@ -19,4 +19,4 @@ module Aliyun
     end # Config
 
   end # STS
-end # Aliyun
+end # AliyunOss

@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-module Aliyun
+module AliyunOss
   module Common
 
     ##
@@ -15,4 +15,4 @@ module Aliyun
     end
 
   end # Common
-end # Aliyun
+end # AliyunOss

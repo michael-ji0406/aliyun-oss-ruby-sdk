@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'yaml'
 require 'nokogiri'
 
-module Aliyun
+module AliyunOss
   module STS
 
     describe Client do
@@ -147,4 +147,4 @@ module Aliyun
     end # Client
 
   end # OSS
-end # Aliyun
+end # AliyunOss

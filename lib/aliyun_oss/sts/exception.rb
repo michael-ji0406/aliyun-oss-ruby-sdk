@@ -2,7 +2,7 @@
 
 require 'nokogiri'
 
-module Aliyun
+module AliyunOss
   module STS
 
     # ServerError represents exceptions from the STS
@@ -50,4 +50,4 @@ module Aliyun
     end # ClientError
 
   end # STS
-end # Aliyun
+end # AliyunOss

@@ -48,7 +48,7 @@ AccessKeySecret，在使用Aliyun OSS SDK时需要提供您的这两个信息。
 
 ### 创建Client
 
-    client = Aliyun::OSS::Client.new(
+    client = AliyunOss::OSS::Client.new(
       :endpoint => 'endpoint',
       :access_key_id => 'access_key_id',
       :access_key_secret => 'access_key_secret')
@@ -71,7 +71,7 @@ OSS支持自定义域名绑定，允许用户将自己的域名指向阿里云OS
 用户绑定了域名后，使用SDK时指定的endpoint可以使用标准的OSS服务地址，也
 可以使用用户绑定的域名：
 
-    client = Aliyun::OSS::Client.new(
+    client = AliyunOss::OSS::Client.new(
       :endpoint => 'http://img.my-domain.com',
       :access_key_id => 'access_key_id',
       :access_key_secret => 'access_key_secret',
@@ -82,7 +82,7 @@ OSS支持自定义域名绑定，允许用户将自己的域名指向阿里云OS
 1. 在Client初始化时必须指定:cname为true
 2. 自定义域名绑定了OSS的一个bucket，所以用这种方式创建的client不能进行
    list_buckets操作
-3. 在{Aliyun::OSS::Client#get_bucket}时仍需要指定bucket名字，并且要与
+3. 在{AliyunOss::OSS::Client#get_bucket}时仍需要指定bucket名字，并且要与
    域名所绑定的bucket名字相同
 
 #### 使用STS创建Client
@@ -92,13 +92,13 @@ OSS支持用户使用STS进行访问，更多有关STS的内容，请参考 [阿
 aliyun-sdk中包含了STS的SDK，使用时只需要`require 'aliyun/sts'`即可：
 
     require 'aliyun/sts'
-    sts = Aliyun::STS::Client.new(
+    sts = AliyunOss::STS::Client.new(
       access_key_id: 'access_key_id',
       access_key_secret: 'access_key_secret')
 
     token = sts.assume_role('role-arn', 'my-app')
 
-    client = Aliyun::OSS::Client.new(
+    client = AliyunOss::OSS::Client.new(
       :endpoint => 'http://oss-cn-hangzhou.aliyuncs.com',
       :access_key_id => token.access_key_id,
       :access_key_secret => token.access_key_secret,
@@ -113,7 +113,7 @@ aliyun-sdk中包含了STS的SDK，使用时只需要`require 'aliyun/sts'`即可
     buckets.each{ |b| puts b.name }
 
 `list_buckets`返回的是一个迭代器，用户依次获取每个Bucket的信息。Bucket
-对象的结构请查看API文档中的{Aliyun::OSS::Bucket}
+对象的结构请查看API文档中的{AliyunOss::OSS::Bucket}
 
 ### 创建一个Bucket
 
@@ -126,7 +126,7 @@ aliyun-sdk中包含了STS的SDK，使用时只需要`require 'aliyun/sts'`即可
     objects.each{ |o| puts o.key }
 
 `list_objects`返回的是一个迭代器，用户依次获取每个Object的信息。Object
-对象的结构请查看API文档中的{Aliyun::OSS::Object}
+对象的结构请查看API文档中的{AliyunOss::OSS::Object}
 
 ### 在Bucket中创建一个Object
 
@@ -152,7 +152,7 @@ aliyun-sdk中包含了STS的SDK，使用时只需要`require 'aliyun/sts'`即可
 
     bucket.object_exists?(object_key)
 
-更多Bucket的操作请参考API文档中的{Aliyun::OSS::Bucket}
+更多Bucket的操作请参考API文档中的{AliyunOss::OSS::Bucket}
 
 ## 模拟目录结构
 
@@ -172,7 +172,7 @@ Object的common prefix，包含在`list_objects`的结果中。
 
     objs = bucket.list_objects(:prefix => 'foo/', :delimiter => '/')
     objs.each do |i|
-      if i.is_a?(Aliyun::OSS::Object) # a object
+      if i.is_a?(AliyunOss::OSS::Object) # a object
         puts "object: #{i.key}"
       else
         puts "common prefix: #{i}"
@@ -195,7 +195,7 @@ Common prefix让用户不需要遍历所有的object（可能数量巨大）而�
 
 下面的例子将演示如何使用上传回调：
 
-    callback = Aliyun::OSS::Callback.new(
+    callback = AliyunOss::OSS::Callback.new(
       url: 'http://10.101.168.94:1234/callback',
       query: {user: 'put_object'},
       body: 'bucket=${bucket}&object=${object}'
@@ -203,7 +203,7 @@ Common prefix让用户不需要遍历所有的object（可能数量巨大）而�
 
     begin
       bucket.put_object('files/hello', callback: callback)
-    rescue Aliyun::OSS::CallbackError => e
+    rescue AliyunOss::OSS::CallbackError => e
       puts "Callback failed: #{e.message}"
     end
 
@@ -305,8 +305,8 @@ Multipart的功能，可以在上传/下载时将大文件进行分片传输。A
     pos = bucket.get_object(object_key).size
     next_pos = bucket.append_object(object_key, pos, :file => local_file)
 
-程序第一次追加时，可以通过{Aliyun::OSS::Bucket#get_object}获取文件的长度，
-后续追加时，可以根据{Aliyun::OSS::Bucket#append_object}返回的下次追加长度。
+程序第一次追加时，可以通过{AliyunOss::OSS::Bucket#get_object}获取文件的长度，
+后续追加时，可以根据{AliyunOss::OSS::Bucket#append_object}返回的下次追加长度。
 
 注意：如果并发地`append_object`，`next_pos`并不总是对的。
 
@@ -329,7 +329,7 @@ Multipart的功能，可以在上传/下载时将大文件进行分片传输。A
 
 1. meta信息的key和value都只能是简单的ASCII非换行字符，并且总的大小不能超过8KB。
 2. Copy object时默认将拷贝源object的meta信息，如果用户不希望这么做，需要
-   显式地将`:meta_directive`设置成{Aliyun::OSS::MetaDirective::REPLACE}
+   显式地将`:meta_directive`设置成{AliyunOss::OSS::MetaDirective::REPLACE}
 
 ## 权限控制
 
@@ -343,7 +343,7 @@ OSS允许用户对Bucket和Object分别设置访问权限，方便用户控制�
 创建Bucket时，默认是private权限。之后用户可以通过`bucket.acl=`来设置
 Bucket的权限。
 
-    bucket.acl = Aliyun::OSS::ACL::PUBLIC_READ
+    bucket.acl = AliyunOss::OSS::ACL::PUBLIC_READ
     puts bucket.acl # public-read
 
 对于Object，有四种访问权限：
@@ -358,7 +358,7 @@ Bucket的权限。
 
     acl = bucket.get_object_acl(object_key)
     puts acl # default
-    bucket.set_object_acl(object_key, Aliyun::OSS::ACL::PUBLIC_READ)
+    bucket.set_object_acl(object_key, AliyunOss::OSS::ACL::PUBLIC_READ)
     acl = bucket.get_object_acl(object_key)
     puts acl # public-read
 

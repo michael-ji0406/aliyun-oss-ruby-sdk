@@ -3,7 +3,7 @@
 require 'json'
 require 'cgi'
 
-module Aliyun
+module AliyunOss
   module STS
 
     # STS Policy. Referer to
@@ -61,4 +61,4 @@ module Aliyun
     end
 
   end # STS
-end # Aliyun
+end # AliyunOss

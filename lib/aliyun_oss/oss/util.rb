@@ -5,7 +5,7 @@ require 'base64'
 require 'openssl'
 require 'digest/md5'
 
-module Aliyun
+module AliyunOss
   module OSS
     ##
     # Util functions to help generate formatted Date, signatures,
@@ -78,7 +78,7 @@ module Aliyun
       end # self
     end # Util
   end # OSS
-end # Aliyun
+end # AliyunOss
 
 # Monkey patch to support #to_bool
 class String

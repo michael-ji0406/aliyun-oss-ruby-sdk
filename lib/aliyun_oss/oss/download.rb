@@ -1,12 +1,12 @@
 # -*- encoding: utf-8 -*-
 
-module Aliyun
+module AliyunOss
   module OSS
     module Multipart
       ##
-      # A multipart upload transaction
+      # A multipart download transaction
       #
-      class Upload < Transaction
+      class Download < Transaction
 
         include Common::Logging
 
@@ -22,7 +22,7 @@ module Aliyun
           @cpt_file = args.delete(:cpt_file)
           super(args)
 
-          @file_meta = {}
+          @object_meta = {}
           @num_threads = options[:threads] || NUM_THREAD
           @all_mutex = Mutex.new
           @parts = []
@@ -30,13 +30,13 @@ module Aliyun
           @todo_parts = []
         end
 
-        # Run the upload transaction, which includes 3 stages:
-        # * 1a. initiate(new upload) and divide parts
-        # * 1b. rebuild states(resumed upload)
-        # * 2.  upload each unfinished part
-        # * 3.  commit the multipart upload transaction
+        # Run the download transaction, which includes 3 stages:
+        # * 1a. initiate(new downlaod) and divide parts
+        # * 1b. rebuild states(resumed download)
+        # * 2.  download each unfinished part
+        # * 3.  combine the downloaded parts into the final file
         def run
-          logger.info("Begin upload, file: #{@file}, "\
+          logger.info("Begin download, file: #{@file}, "\
                       "checkpoint file: #{@cpt_file}, "\
                       "threads: #{@num_threads}")
 
@@ -44,10 +44,10 @@ module Aliyun
           # Or initiate new transaction states
           rebuild
 
-          # Divide the file to upload into parts to upload separately
+          # Divide the target object into parts to download by ranges
           divide_parts if @parts.empty?
 
-          # Upload each part
+          # Download each part(object range)
           @todo_parts = @parts.reject { |p| p[:done] }
 
           (1..@num_threads).map {
@@ -55,29 +55,29 @@ module Aliyun
               loop {
                 p = sync_get_todo_part
                 break unless p
-                upload_part(p)
+                download_part(p)
               }
             }
           }.map(&:join)
 
-          # Commit the multipart upload transaction
+          # Combine the parts into the final file
           commit
 
-          logger.info("Done upload, file: #{@file}")
+          logger.info("Done download, file: #{@file}")
         end
 
         # Checkpoint structures:
         # @example
         #   states = {
-        #     :id => 'upload_id',
+        #     :id => 'download_id',
         #     :file => 'file',
-        #     :file_meta => {
-        #       :mtime => Time.now,
-        #       :md5 => 1024
+        #     :object_meta => {
+        #       :etag => 'xxx',
+        #       :size => 1024
         #     },
         #     :parts => [
-        #       {:number => 1, :range => [0, 100], :done => false},
-        #       {:number => 2, :range => [100, 200], :done => true}
+        #       {:number => 1, :range => [0, 100], :md5 => 'xxx', :done => false},
+        #       {:number => 2, :range => [100, 200], :md5 => 'yyy', :done => true}
         #     ],
         #     :md5 => 'states_md5'
         #   }
@@ -85,13 +85,13 @@ module Aliyun
           logger.debug("Begin make checkpoint, disable_cpt: "\
                        "#{options[:disable_cpt] == true}")
 
-          ensure_file_not_changed
+          ensure_object_not_changed
 
           parts = sync_get_all_parts
           states = {
             :id => id,
             :file => @file,
-            :file_meta => @file_meta,
+            :object_meta => @object_meta,
             :parts => parts
           }
 
@@ -107,19 +107,23 @@ module Aliyun
         end
 
         private
-        # Commit the transaction when all parts are succefully uploaded
-        # @todo handle undefined behaviors: commit succeeds in server
-        #  but return error in client
+        # Combine the downloaded parts into the final file
+        # @todo avoid copy all part files
         def commit
           logger.info("Begin commit transaction, id: #{id}")
 
-          parts = sync_get_all_parts.map{ |p|
-            Part.new(:number  => p[:number], :etag => p[:etag])
-          }
-          @protocol.complete_multipart_upload(
-            bucket, object, id, parts, @options[:callback])
+          parts = sync_get_all_parts
+          # concat all part files into the target file
+          File.open(@file, 'w') do |w|
+            parts.sort{ |x, y| x[:number] <=> y[:number] }.each do |p|
+              File.open(get_part_file(p)) do |r|
+                  w.write(r.read(READ_SIZE)) until r.eof?
+              end
+            end
+          end
 
           File.delete(@cpt_file) unless options[:disable_cpt]
+          parts.each{ |p| File.delete(get_part_file(p)) }
 
           logger.info("Done commit transaction, id: #{id}")
         end
@@ -133,12 +137,21 @@ module Aliyun
           else
             states = load_checkpoint(@cpt_file)
 
-            if states[:file_md5] != @file_meta[:md5]
-              fail FileInconsistentError.new("The file to upload is changed.")
+            states[:parts].select{ |p| p[:done] }.each do |p|
+              part_file = get_part_file(p)
+
+              unless File.exist?(part_file)
+                fail PartMissingError, "The part file is missing: #{part_file}."
+              end
+
+              if p[:md5] != get_file_md5(part_file)
+                fail PartInconsistentError,
+                     "The part file is changed: #{part_file}."
+              end
             end
 
             @id = states[:id]
-            @file_meta = states[:file_meta]
+            @object_meta = states[:object_meta]
             @parts = states[:parts]
           end
 
@@ -148,54 +161,48 @@ module Aliyun
         def initiate
           logger.info("Begin initiate transaction")
 
-          @id = @protocol.initiate_multipart_upload(bucket, object, options)
-          @file_meta = {
-            :mtime => File.mtime(@file),
-            :md5 => get_file_md5(@file)
+          @id = generate_download_id
+          obj = @protocol.get_object_meta(bucket, object)
+          @object_meta = {
+            :etag => obj.etag,
+            :size => obj.size
           }
           checkpoint
 
           logger.info("Done initiate transaction, id: #{id}")
         end
 
-        # Upload a part
-        def upload_part(p)
-          logger.debug("Begin upload part: #{p}")
+        # Download a part
+        def download_part(p)
+          logger.debug("Begin download part: #{p}")
 
-          result = nil
-          File.open(@file) do |f|
-            range = p[:range]
-            pos = range.first
-            f.seek(pos)
-
-            result = @protocol.upload_part(bucket, object, id, p[:number]) do |sw|
-              while pos < range.at(1)
-                bytes = [READ_SIZE, range.at(1) - pos].min
-                sw << f.read(bytes)
-                pos += bytes
-              end
-            end
+          part_file = get_part_file(p)
+          File.open(part_file, 'w') do |w|
+            @protocol.get_object(
+              bucket, object,
+              @options.merge(range: p[:range])) { |chunk| w.write(chunk) }
           end
 
-          sync_update_part(p.merge(done: true, etag: result.etag))
+          sync_update_part(p.merge(done: true, md5: get_file_md5(part_file)))
 
           checkpoint
 
-          logger.debug("Done upload part: #{p}")
+          logger.debug("Done download part: #{p}")
         end
 
-        # Devide the file into parts to upload
+        # Devide the object to download into parts to download
         def divide_parts
-          logger.info("Begin divide parts, file: #{@file}")
+          logger.info("Begin divide parts, object: #{@object}")
 
-          max_parts = 10000
-          file_size = File.size(@file)
-          part_size = [@options[:part_size] || PART_SIZE, file_size / max_parts].max
-          num_parts = (file_size - 1) / part_size + 1
+          max_parts = 100
+          object_size = @object_meta[:size]
+          part_size =
+            [@options[:part_size] || PART_SIZE, object_size / max_parts].max
+          num_parts = (object_size - 1) / part_size + 1
           @parts = (1..num_parts).map do |i|
             {
               :number => i,
-              :range => [(i-1) * part_size, [i * part_size, file_size].min],
+              :range => [(i - 1) * part_size, [i * part_size, object_size].min],
               :done => false
             }
           end
@@ -224,15 +231,25 @@ module Aliyun
         end
 
         # Ensure file not changed during uploading
-        def ensure_file_not_changed
-          return if File.mtime(@file) == @file_meta[:mtime]
-
-          if @file_meta[:md5] != get_file_md5(@file)
-            fail FileInconsistentError, "The file to upload is changed."
+        def ensure_object_not_changed
+          obj = @protocol.get_object_meta(bucket, object)
+          unless obj.etag == @object_meta[:etag]
+            fail ObjectInconsistentError,
+                 "The object to download is changed: #{object}."
           end
         end
-      end # Upload
+
+        # Generate a download id
+        def generate_download_id
+          "download_#{bucket}_#{object}_#{Time.now.to_i}"
+        end
+
+        # Get name for part file
+        def get_part_file(p)
+          "#{@file}.part.#{p[:number]}"
+        end
+      end # Download
 
     end # Multipart
   end # OSS
-end # Aliyun
+end # AliyunOss

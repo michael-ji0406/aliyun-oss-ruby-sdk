@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'yaml'
 require 'nokogiri'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     describe "Object" do
@@ -782,4 +782,4 @@ module Aliyun
     end # Object
 
   end # OSS
-end # Aliyun
+end # AliyunOss

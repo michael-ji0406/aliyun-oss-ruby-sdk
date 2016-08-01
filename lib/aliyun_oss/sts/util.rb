@@ -6,7 +6,7 @@ require 'base64'
 require 'openssl'
 require 'digest/md5'
 
-module Aliyun
+module AliyunOss
   module STS
     ##
     # Util functions to help generate formatted Date, signatures,
@@ -45,4 +45,4 @@ module Aliyun
       end # self
     end # Util
   end # STS
-end # Aliyun
+end # AliyunOss

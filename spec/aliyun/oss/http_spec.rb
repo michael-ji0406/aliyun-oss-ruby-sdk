@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-module Aliyun
+module AliyunOss
   module OSS
 
     describe HTTP do
@@ -80,4 +80,4 @@ module Aliyun
 
     end # HTTP
   end # OSS
-end # Aliyun
+end # AliyunOss
